@@ -72,6 +72,12 @@ real linked WhatsApp session, treat it as an experiment: check back on
 [PR #2755](https://github.com/WhiskeySockets/Baileys/pull/2755) periodically
 and switch to the real `baileys` release once it merges.
 
+**Confirmed by testing (not just the PR's own claims):** an empty `emoji`
+argument causes WhatsApp to silently ignore the whole update, the same as an
+empty `text` does. Always pass a non-empty emoji, even for a generic/idle
+status with no natural icon - that's why `IDLE_EMOJI` defaults to 💤 rather
+than being left blank.
+
 ## Install
 
 ```bash

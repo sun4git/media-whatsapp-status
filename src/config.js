@@ -16,8 +16,9 @@ export const config = {
   // documented minimum for this API - 60s is unverified, being tried as an
   // experiment. Raise it (e.g. 300) if it turns out not to take effect.
   idleDurationSec: parseInt(process.env.IDLE_DURATION_SEC || '60', 10),
-  // Unconfirmed hypothesis being tested: an empty emoji field might cause
-  // WhatsApp to silently ignore the whole update, same as empty text does.
+  // Confirmed by testing: an empty emoji field causes WhatsApp to silently
+  // ignore the whole update (same as an empty text field does) - always pass
+  // a non-empty emoji, even for a generic/idle status with no natural icon.
   idleEmoji: process.env.IDLE_EMOJI || '💤',
   authDir: process.env.AUTH_DIR || './auth',
   // Duration is seconds until WhatsApp auto-expires the About text on its own
