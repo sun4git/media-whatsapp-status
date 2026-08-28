@@ -33,8 +33,13 @@ function handleNowPlayingEvent(result) {
       updateOpts,
     )
   } else if (result.kind === 'stopped' && config.clearStatusOnStop) {
-    // 0 disables the auto-expiry timer - nothing to expire once it's already blank/default.
-    scheduleStatusUpdate({ text: config.defaultStatusText, emoji: '', durationSec: 0 }, updateOpts)
+    // Empty text through this API doesn't actually remove the About entry -
+    // WhatsApp silently ignores it - so this sets a real generic fallback
+    // instead, using the same "set text" call that already works for tracks.
+    scheduleStatusUpdate(
+      { text: config.defaultStatusText, emoji: '', durationSec: config.idleDurationSec },
+      updateOpts,
+    )
   }
 }
 

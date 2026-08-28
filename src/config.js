@@ -12,6 +12,10 @@ export const config = {
   idleDisconnectMs: parseInt(process.env.IDLE_DISCONNECT_MS || '10000', 10),
   clearStatusOnStop: (process.env.CLEAR_STATUS_ON_STOP || 'true').toLowerCase() === 'true',
   defaultStatusText: process.env.DEFAULT_STATUS_TEXT || '',
+  // Duration for the pause/stop fallback text specifically. There's no
+  // documented minimum for this API - 60s is unverified, being tried as an
+  // experiment. Raise it (e.g. 300) if it turns out not to take effect.
+  idleDurationSec: parseInt(process.env.IDLE_DURATION_SEC || '60', 10),
   authDir: process.env.AUTH_DIR || './auth',
   // Duration is seconds until WhatsApp auto-expires the About text on its own
   // - a safety net if a stop/pause webhook is ever missed. Requires the
