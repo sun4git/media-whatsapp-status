@@ -2,6 +2,7 @@
   "name": "media-whatsapp-status",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Updates a WhatsApp account's About text with the currently playing track for a configured user. Plex webhook supported now; other sources (e.g. Spotify) can be added under src/sources/ later.",
   "type": "module",
   "main": "src/server.js",
