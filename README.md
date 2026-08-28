@@ -174,10 +174,10 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/suneel/media-whatsapp-status
+WorkingDirectory=/home/<your-user>/media-whatsapp-status
 ExecStart=/usr/bin/node src/server.js
 Restart=on-failure
-User=suneel
+User=<your-user>
 
 [Install]
 WantedBy=multi-user.target
