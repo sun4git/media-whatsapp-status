@@ -100,8 +100,16 @@ function scheduleIdleDisconnect(idleDisconnectMs) {
   }, idleDisconnectMs)
 }
 
-export async function pushStatus(text, { authDir, idleDisconnectMs }) {
+// NOTE: stable `baileys` currently sends About updates using an old protocol
+// path that WhatsApp silently ignores (see WhiskeySockets/Baileys issue #2727
+// and unmerged PR #2755). This 3-arg (status, emoji, duration) call matches
+// PR #2755's signature as installed from its fork branch - if you're on the
+// stable registry package instead, drop back to `updateProfileStatus(text)`.
+// Verify this against the actual installed package's source/types if About
+// still doesn't update after switching - this is based on a secondhand
+// summary of an unmerged diff, not independently verified against source.
+export async function pushStatus({ text, emoji = '', durationSec = 0 }, { authDir, idleDisconnectMs }) {
   const client = await connect(authDir)
-  await client.updateProfileStatus(text)
+  await client.updateProfileStatus(text, emoji, durationSec)
   scheduleIdleDisconnect(idleDisconnectMs)
 }

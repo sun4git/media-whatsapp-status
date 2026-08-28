@@ -13,6 +13,11 @@ export const config = {
   clearStatusOnStop: (process.env.CLEAR_STATUS_ON_STOP || 'false').toLowerCase() === 'true',
   defaultStatusText: process.env.DEFAULT_STATUS_TEXT || '',
   authDir: process.env.AUTH_DIR || './auth',
+  statusEmoji: process.env.STATUS_EMOJI || '🎵',
+  // Seconds until WhatsApp auto-expires the About text on its own - a safety
+  // net if a stop/pause webhook is ever missed. Requires the Baileys fork
+  // with PR #2755's duration support; ignored (has no effect) on stable Baileys.
+  statusDurationSec: parseInt(process.env.STATUS_DURATION_SEC || '3600', 10),
 }
 
 if (config.watchedUsers.length === 0) {

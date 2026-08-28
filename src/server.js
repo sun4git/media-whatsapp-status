@@ -19,9 +19,15 @@ const updateOpts = {
 function handleNowPlayingEvent(result) {
   if (!result) return
   if (result.kind === 'playing') {
-    scheduleStatusUpdate(formatNowPlaying(result), updateOpts)
+    scheduleStatusUpdate(
+      { text: formatNowPlaying(result), emoji: config.statusEmoji, durationSec: config.statusDurationSec },
+      updateOpts,
+    )
   } else if (result.kind === 'stopped' && config.clearStatusOnStop) {
-    scheduleStatusUpdate(config.defaultStatusText, updateOpts)
+    scheduleStatusUpdate(
+      { text: config.defaultStatusText, emoji: '', durationSec: config.statusDurationSec },
+      updateOpts,
+    )
   }
 }
 

@@ -52,13 +52,41 @@ specifically, despite the "status" naming.
 - A phone with the target WhatsApp account installed, for the one-time QR
   link.
 
+## Known issue: About updates need an unmerged Baileys fork
+
+As of testing this in August 2026, stable `baileys`'s `updateProfileStatus()`
+sends About updates using an old protocol path that WhatsApp's servers
+silently ignore - the call succeeds with no error, but nothing changes on
+WhatsApp. This is WhiskeySockets/Baileys issue #2727 ("WhatsApp's new About
+update"); the fix is open PR #2755, unmerged and flagged stale as of
+2026-08-23, available only from the author's fork branch. This project's code
+already calls `updateProfileStatus(text, emoji, durationSec)` - the new
+3-argument signature that PR introduces - so you need that fork installed,
+not the registry package, for About updates to actually work.
+
+Since this is unreviewed, untested-by-maintainers code running against your
+real linked WhatsApp session, treat it as an experiment: check back on
+[PR #2755](https://github.com/WhiskeySockets/Baileys/pull/2755) periodically
+and switch to the real `baileys` release once it merges.
+
 ## Install
 
 ```bash
 cd ~/media-whatsapp-status   # wherever you copy this project on the Ubuntu box
-npm install baileys express multer dotenv pino qrcode-terminal
+npm install express multer dotenv pino qrcode-terminal
+npm install baileys@github:ayusc/Baileys#9a469c7
 cp .env.example .env
 ```
+
+After installing, verify the fork actually has the signature this code
+expects before relying on it - I pieced this together from a summarized diff,
+not verified source:
+```bash
+grep -n "updateProfileStatus" node_modules/baileys/lib/Socket/*.js
+```
+It should show a function accepting three parameters (status, emoji,
+duration), not just one. If it doesn't match, the call in
+`src/whatsappClient.js` will need adjusting to whatever the real signature is.
 
 Edit `.env`:
 - `WATCHED_USERS` - your Plex account username (as it appears in

@@ -4,9 +4,12 @@
 import { config } from './config.js'
 import { pushStatus } from './whatsappClient.js'
 
-const text = process.argv[2] || '🎧 media-whatsapp-status linked'
+const text = process.argv[2] || 'media-whatsapp-status linked'
 
-pushStatus(text, { authDir: config.authDir, idleDisconnectMs: 2000 })
+pushStatus(
+  { text, emoji: '🎧', durationSec: config.statusDurationSec },
+  { authDir: config.authDir, idleDisconnectMs: 2000 },
+)
   .then(() => {
     console.log('[link] Status updated successfully - WhatsApp link is working.')
     process.exit(0)
