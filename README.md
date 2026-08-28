@@ -151,8 +151,8 @@ same event to both.
    `[queue] WhatsApp status updated: 🎵 <track> — <artist>`.
 3. Check the About text on your WhatsApp profile from another device/contact
    view.
-4. Pause/stop playback - if `CLEAR_STATUS_ON_STOP=true`, confirm it resets to
-   `DEFAULT_STATUS_TEXT` after the debounce window; if left `false` (default),
+4. Pause/stop playback - if `CLEAR_STATUS_ON_STOP=true` (the default), confirm
+   it resets to `IDLE_STATUS_TEXT` after the debounce window; if set `false`,
    the last status simply stays as-is.
 5. Try skipping through a few tracks quickly - confirm only one status update
    fires for the final track, not one per skip.

@@ -11,7 +11,7 @@ export const config = {
   debounceMs: parseInt(process.env.DEBOUNCE_MS || '2500', 10),
   idleDisconnectMs: parseInt(process.env.IDLE_DISCONNECT_MS || '10000', 10),
   clearStatusOnStop: (process.env.CLEAR_STATUS_ON_STOP || 'true').toLowerCase() === 'true',
-  defaultStatusText: process.env.DEFAULT_STATUS_TEXT || '',
+  idleStatusText: process.env.IDLE_STATUS_TEXT || '',
   // Duration for the pause/stop fallback text specifically. Confirmed by
   // testing: 60s actually takes effect (expires on schedule) - no documented
   // minimum exists, but this value is now known-good, not a guess.

@@ -37,7 +37,7 @@ function handleNowPlayingEvent(result) {
     // WhatsApp silently ignores it - so this sets a real generic fallback
     // instead, using the same "set text" call that already works for tracks.
     scheduleStatusUpdate(
-      { text: config.defaultStatusText, emoji: config.idleEmoji, durationSec: config.idleDurationSec },
+      { text: config.idleStatusText, emoji: config.idleEmoji, durationSec: config.idleDurationSec },
       updateOpts,
     )
   }
