@@ -12,9 +12,9 @@ export const config = {
   idleDisconnectMs: parseInt(process.env.IDLE_DISCONNECT_MS || '10000', 10),
   clearStatusOnStop: (process.env.CLEAR_STATUS_ON_STOP || 'true').toLowerCase() === 'true',
   defaultStatusText: process.env.DEFAULT_STATUS_TEXT || '',
-  // Duration for the pause/stop fallback text specifically. There's no
-  // documented minimum for this API - 60s is unverified, being tried as an
-  // experiment. Raise it (e.g. 300) if it turns out not to take effect.
+  // Duration for the pause/stop fallback text specifically. Confirmed by
+  // testing: 60s actually takes effect (expires on schedule) - no documented
+  // minimum exists, but this value is now known-good, not a guess.
   idleDurationSec: parseInt(process.env.IDLE_DURATION_SEC || '60', 10),
   // Confirmed by testing: an empty emoji field causes WhatsApp to silently
   // ignore the whole update (same as an empty text field does) - always pass
