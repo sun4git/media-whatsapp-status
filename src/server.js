@@ -16,18 +16,25 @@ const updateOpts = {
   debounceMs: config.debounceMs,
 }
 
+// movie and episode share the same "long-form video" defaults; track (music)
+// gets its own, much shorter, defaults.
+const MEDIA_STYLE = {
+  track: { emoji: config.trackEmoji, durationSec: config.trackDurationSec },
+  movie: { emoji: config.videoEmoji, durationSec: config.videoDurationSec },
+  episode: { emoji: config.videoEmoji, durationSec: config.videoDurationSec },
+}
+
 function handleNowPlayingEvent(result) {
   if (!result) return
   if (result.kind === 'playing') {
+    const style = MEDIA_STYLE[result.mediaType] ?? MEDIA_STYLE.track
     scheduleStatusUpdate(
-      { text: formatNowPlaying(result), emoji: config.statusEmoji, durationSec: config.statusDurationSec },
+      { text: formatNowPlaying(result), emoji: style.emoji, durationSec: style.durationSec },
       updateOpts,
     )
   } else if (result.kind === 'stopped' && config.clearStatusOnStop) {
-    scheduleStatusUpdate(
-      { text: config.defaultStatusText, emoji: '', durationSec: config.statusDurationSec },
-      updateOpts,
-    )
+    // 0 disables the auto-expiry timer - nothing to expire once it's already blank/default.
+    scheduleStatusUpdate({ text: config.defaultStatusText, emoji: '', durationSec: 0 }, updateOpts)
   }
 }
 

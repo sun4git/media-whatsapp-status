@@ -33,11 +33,14 @@ specifically, despite the "status" naming.
 - Registers as a **second** Plex webhook URL alongside whatever `smart-plex-queue`
   already uses. Plex POSTs every event to both independently.
 - `src/sources/plex.js` filters events to `media.play` / `media.resume` on
-  `Metadata.type == "track"`, from a username in your watch list, and
-  normalizes them to `{ kind: 'playing', title, artist }` / `{ kind: 'stopped' }`.
-- `src/server.js` debounces bursts of events (e.g. skipping tracks) and only
-  then connects to WhatsApp, sets the About text, and disconnects again - it
-  does **not** hold a permanent WhatsApp connection open.
+  `Metadata.type` of `track`, `movie`, or `episode`, from a username in your
+  watch list, and normalizes them to
+  `{ kind: 'playing', mediaType, title, subtitle }` / `{ kind: 'stopped' }`.
+- `src/server.js` picks emoji/duration by `mediaType` (tracks get short
+  music-length defaults, movies/episodes get long-form-video defaults),
+  debounces bursts of events (e.g. skipping tracks), and only then connects to
+  WhatsApp, sets the About text, and disconnects again - it does **not** hold
+  a permanent WhatsApp connection open.
 
 ## Prerequisites (Ubuntu listener box)
 

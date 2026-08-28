@@ -7,7 +7,7 @@ import { pushStatus } from './whatsappClient.js'
 const text = process.argv[2] || 'media-whatsapp-status linked'
 
 pushStatus(
-  { text, emoji: '🎧', durationSec: config.statusDurationSec },
+  { text, emoji: '🎧', durationSec: config.trackDurationSec },
   { authDir: config.authDir, idleDisconnectMs: 2000 },
 )
   .then(() => {
