@@ -311,6 +311,10 @@ adapts its interval instead of polling at one fixed rate:
   window either.
 - A rejected/expired access token triggers one fresh refresh-token exchange
   and retries on the next cycle, rather than crashing the process.
+- If the linked account's display name isn't in `WATCHED_USERS` at all, the
+  poller stops entirely after one check (logging why) rather than polling
+  forever for an account that could never pass the filter anyway - add it to
+  `.env` and restart the service to enable polling for that account.
 
 ## Troubleshooting
 
@@ -323,4 +327,4 @@ adapts its interval instead of polling at one fixed rate:
 | `[server] Spotify polling disabled...` at startup | `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` aren't set in `.env` - expected if you haven't set up Spotify |
 | `Could not read Spotify refresh token from ...` | Run `npm run link:spotify` first - the poller has nothing to authenticate with until that's done once |
 | `[spotify] Access token rejected...` repeating every cycle | The refresh token was revoked (e.g. the account removed app access in their Spotify settings) - delete `spotify-token.json` and run `npm run link:spotify` again |
-| Spotify events never match `WATCHED_USERS` | The filter compares against the linked account's Spotify **display name** (from `/me`), not their email or username - check what `/me` actually returns for that account |
+| `[spotify] Linked account "..." is not in WATCHED_USERS - stopping...` | Expected if that account isn't meant to be tracked. To enable it, add that exact display name to `WATCHED_USERS` in `.env` and restart the service |

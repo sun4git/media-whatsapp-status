@@ -78,7 +78,9 @@ export function startSpotifyPolling(onEvent, cfg) {
     spotifyTokenPath: tokenPath,
     spotifyPollIntervalMs: activeIntervalMs,
     spotifyIdlePollIntervalMs: idleIntervalMs,
+    watchedUsers,
   } = cfg
+  const watchedUsersLower = watchedUsers.map((u) => u.toLowerCase())
 
   let accessToken = null
   let accessTokenExpiresAt = 0
@@ -115,6 +117,19 @@ export function startSpotifyPolling(onEvent, cfg) {
     try {
       const token = await ensureAccessToken()
       const who = await ensureUsername(token)
+
+      // No point spending Spotify's undocumented quota polling an account
+      // that can never pass WATCHED_USERS anyway - check before, not after,
+      // fetching playback state, and stop rescheduling entirely rather than
+      // silently polling forever for nothing.
+      if (!watchedUsersLower.includes(who.toLowerCase())) {
+        console.log(
+          `[spotify] Linked account "${who}" is not in WATCHED_USERS - stopping Spotify polling. ` +
+            'Add it to .env and restart the service to enable.',
+        )
+        return
+      }
+
       const playbackState = await fetchPlaybackState(token)
       const event = normalize(playbackState, who)
 
