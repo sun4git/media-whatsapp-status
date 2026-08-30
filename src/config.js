@@ -35,6 +35,23 @@ export const config = {
   trackDurationSec: parseInt(process.env.TRACK_DURATION_SEC || '600', 10),
   videoEmoji: process.env.VIDEO_EMOJI || '🎬',
   videoDurationSec: parseInt(process.env.VIDEO_DURATION_SEC || '5400', 10),
+
+  // Optional second source. Spotify has no push webhook, so unlike Plex this
+  // needs OAuth (npm run link:spotify, see README) plus polling. Leaving
+  // SPOTIFY_CLIENT_ID/SECRET empty disables it entirely - server.js never
+  // starts the poller in that case.
+  spotifyClientId: process.env.SPOTIFY_CLIENT_ID || '',
+  spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET || '',
+  // Only used to complete the one-time OAuth consent redirect - nothing
+  // needs to actually be listening on it (see src/link-spotify.js).
+  spotifyRedirectUri: process.env.SPOTIFY_REDIRECT_URI || 'http://127.0.0.1:8888/callback',
+  spotifyTokenPath: process.env.SPOTIFY_TOKEN_PATH || './spotify-token.json',
+  // Spotify's Development Mode quota/rate limits aren't publicly documented
+  // (confirmed against their docs - not a gap in our research), so the main
+  // lever available is polling fast only while something's actually playing
+  // and backing off hard when idle, rather than a single fixed interval.
+  spotifyPollIntervalMs: parseInt(process.env.SPOTIFY_POLL_INTERVAL_MS || '10000', 10),
+  spotifyIdlePollIntervalMs: parseInt(process.env.SPOTIFY_IDLE_POLL_INTERVAL_MS || '60000', 10),
 }
 
 if (config.watchedUsers.length === 0) {

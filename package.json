@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "license": "MIT",
-  "description": "Updates a WhatsApp account's About text with the currently playing track for a configured user. Plex webhook supported now; other sources (e.g. Spotify) can be added under src/sources/ later.",
+  "description": "Updates a WhatsApp account's About text with the currently playing track for configured users. Supports Plex (webhook) and Spotify (polling, requires npm run link:spotify).",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "link": "node src/link.js"
+    "link": "node src/link.js",
+    "link:spotify": "node src/link-spotify.js"
   },
   "engines": {
     "node": ">=18"

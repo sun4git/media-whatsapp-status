@@ -6,10 +6,11 @@ with the track currently playing, for one or more configured usernames.
 Fully independent of `mediasage` and `smart-plex-queue` — its own dependencies,
 its own WhatsApp session, no shared code or process.
 
-Plex is the only supported source right now. The `src/sources/` folder exists
-so another push-based source could plug into the same pipeline later, but see
-the note at the bottom before assuming that's a small addition for every
-service.
+Two sources are supported: **Plex** (a real push webhook) and **Spotify**
+(polling, since Spotify has no webhook - see the dedicated section below).
+Both normalize into the same shape and share the same `WATCHED_USERS` /
+`WATCHED_DEVICES` filtering in `src/server.js`, so adding a source is mostly
+about producing that shape, not re-implementing filtering or WhatsApp logic.
 
 ## About text vs. WhatsApp Status - why this matters
 
@@ -71,6 +72,9 @@ Status/Story post is ever created.
   debounces bursts of events (e.g. skipping tracks), and only then connects to
   WhatsApp, sets the About text, and disconnects again - it does **not** hold
   a permanent WhatsApp connection open.
+- `src/sources/spotify.js` runs its own poll loop (no webhook exists for
+  this) and calls the same `handleNowPlayingEvent` directly - see the
+  Spotify section below for setup and how polling frequency is kept low.
 
 ## Prerequisites (Ubuntu listener box)
 
@@ -81,7 +85,8 @@ Status/Story post is ever created.
   sudo apt-get update && sudo apt-get install -y build-essential python3
   ```
 - Outbound internet access from this box (not just LAN) - it connects
-  directly to WhatsApp's servers.
+  directly to WhatsApp's servers, and to Spotify's API if that source is
+  enabled.
 - A phone with the target WhatsApp account installed, for the one-time QR
   link.
 
@@ -165,7 +170,10 @@ You should see:
 [server] Listening on port 8090
 [server]   Plex webhook path: /webhook/plex
 [server] Watching user(s): YourPlexUsername
+[server] Watching device(s): (none — all devices allowed)
+[server] Spotify polling disabled (SPOTIFY_CLIENT_ID/SECRET not set).
 ```
+(The last line reads "Spotify polling enabled." instead once that source is configured - see below.)
 
 ## Point Plex at it
 
@@ -222,6 +230,88 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now media-whatsapp-status
 ```
 
+## Spotify source (optional)
+
+Unlike Plex, Spotify has no push webhook for personal accounts - only a
+pollable "what's playing" endpoint under OAuth. `src/sources/spotify.js`
+polls it in a loop and feeds the same normalized shape into
+`handleNowPlayingEvent`, so `WATCHED_USERS`/`WATCHED_DEVICES` apply exactly
+like they do for Plex. This is entirely optional - leave
+`SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` empty in `.env` and the poller
+never starts.
+
+### Prerequisites
+
+- A Spotify Developer app, created at the
+  [Developer Dashboard](https://developer.spotify.com/dashboard). As of
+  February 2026, creating one requires the creating account to have **Spotify
+  Premium** - this changed after this project was first written, so don't be
+  surprised if older guides don't mention it.
+- When creating the app: select only the **Web API** checkbox (not Ads API,
+  Web Playback SDK, iOS, or Android - this project only reads playback
+  state). Redirect URI can be a placeholder like `http://127.0.0.1:8888/callback`
+  - see "Link Spotify" below for why it doesn't need to actually work.
+- Apps created this way are in **Development Mode**: capped at 5 authorized
+  accounts total (including the app's own creator), each added by email
+  under the app's Settings before they can complete the OAuth flow at all.
+  Getting past that cap (Extended Quota Mode) requires being an approved
+  business with 250k+ monthly active users - not realistic for personal use,
+  so 5 accounts is a permanent ceiling here, not a temporary one.
+- Spotify doesn't publish exact rate-limit/quota numbers for Development
+  Mode apps - `SPOTIFY_POLL_INTERVAL_MS`/`SPOTIFY_IDLE_POLL_INTERVAL_MS`
+  below exist specifically because of that uncertainty.
+
+### Link Spotify (one-time, per account)
+
+Add `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, and `SPOTIFY_REDIRECT_URI`
+(matching exactly what's registered on the app) to `.env`, then:
+
+```bash
+npm run link:spotify
+```
+
+This prints an authorization URL. Open it in **any** browser (it doesn't
+need to be this machine) and log in as one of the allowlisted accounts.
+After approving, the browser redirects to `SPOTIFY_REDIRECT_URI` - that page
+will fail to load, which is expected, since nothing needs to be listening
+there. Spotify's server only ever redirects the browser itself; it never
+calls that URL from its own backend. Copy the full URL from the address bar
+(or just the `code=...` value in it) and paste it back into the running
+script. On success, a refresh token is saved to `SPOTIFY_TOKEN_PATH`
+(default `./spotify-token.json`) - keep that file private and don't commit
+it, same as `auth/` for WhatsApp.
+
+Repeat this once per Spotify account you want tracked (up to the 5-account
+cap). Note that this version only polls **one** account's token
+(`SPOTIFY_TOKEN_PATH`) - tracking multiple Spotify accounts simultaneously
+would need extending `sources/spotify.js` to run one poll loop per saved
+token, which isn't built yet.
+
+### How the polling frequency is kept low
+
+Spotify has no long-polling, WebSocket, or webhook option for this data -
+confirmed against their own issue tracker, where the feature request for it
+has sat open and unimplemented since 2017. Given that, and given Spotify
+doesn't publish its Development Mode quota numbers, `sources/spotify.js`
+adapts its interval instead of polling at one fixed rate:
+
+- While something is playing: polls every `SPOTIFY_POLL_INTERVAL_MS`
+  (default 10s).
+- While idle/nothing playing: backs off to `SPOTIFY_IDLE_POLL_INTERVAL_MS`
+  (default 60s) - most of a typical day has no active playback, so this is
+  where the real savings come from.
+- A poll that returns the exact same state as last time never triggers a
+  WhatsApp update - only an actual change (new track, paused, stopped)
+  does, regardless of how often the interval ticks.
+- On a plain rate limit (`429` with a `Retry-After` header), it waits that
+  long before polling again. On a quota exhaustion (`429` with
+  `"reason": "QUOTA_EXCEEDED"`, a separate, longer-horizon limit Spotify
+  added alongside Development Mode), it backs off for an hour - a
+  conservative guess, since Spotify doesn't document the actual reset
+  window either.
+- A rejected/expired access token triggers one fresh refresh-token exchange
+  and retries on the next cycle, rather than crashing the process.
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
@@ -230,21 +320,7 @@ sudo systemctl enable --now media-whatsapp-status
 | `[whatsapp] Session was logged out...` | The phone unlinked the device, or WhatsApp invalidated the session. Delete the `auth/` folder and run `npm run link` again |
 | Status never updates but no errors | `Metadata.type` isn't `"track"` for what you played (e.g. you tested with a movie) |
 | Multiple rapid updates on track skip | `DEBOUNCE_MS` too low - increase it |
-
-## Adding another source later
-
-Plex has a genuine push-webhook model, which is why this architecture is a
-clean webhook receiver. **Spotify and Amazon Music don't offer an equivalent
-for personal accounts** - Spotify only exposes "currently playing" via
-polling `/me/player/currently-playing` under OAuth, not a push webhook, and
-Amazon Music has no public developer API for this at all as far as I'm aware.
-So a future Spotify source would be a small poller calling their API on an
-interval and feeding the same
-`{ kind: 'playing'/'stopped', mediaType, title, subtitle, username, deviceName }`
-shape into `handleNowPlayingEvent` in `src/server.js` - not another webhook
-route. `username`/`deviceName` matter there too: `WATCHED_USERS`/`WATCHED_DEVICES`
-filtering happens centrally in `server.js`, so a Spotify source gets both
-filters for free as long as it fills in those two fields (from Spotify's
-`/me` display name and the `device.name` field on `/me/player`) - no need to
-re-implement the filter. Worth confirming against Spotify's current developer
-docs before building it, since API terms/availability change.
+| `[server] Spotify polling disabled...` at startup | `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` aren't set in `.env` - expected if you haven't set up Spotify |
+| `Could not read Spotify refresh token from ...` | Run `npm run link:spotify` first - the poller has nothing to authenticate with until that's done once |
+| `[spotify] Access token rejected...` repeating every cycle | The refresh token was revoked (e.g. the account removed app access in their Spotify settings) - delete `spotify-token.json` and run `npm run link:spotify` again |
+| Spotify events never match `WATCHED_USERS` | The filter compares against the linked account's Spotify **display name** (from `/me`), not their email or username - check what `/me` actually returns for that account |

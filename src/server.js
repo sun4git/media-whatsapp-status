@@ -4,6 +4,7 @@ import { config } from './config.js'
 import { formatNowPlaying } from './statusFormatter.js'
 import { scheduleStatusUpdate } from './queue.js'
 import { parsePlexWebhook } from './sources/plex.js'
+import { startSpotifyPolling } from './sources/spotify.js'
 
 const app = express()
 const upload = multer({ storage: multer.memoryStorage() })
@@ -73,3 +74,12 @@ app.listen(config.port, () => {
   console.log(`[server] Watching user(s): ${config.watchedUsers.join(', ') || '(none configured)'}`)
   console.log(`[server] Watching device(s): ${config.watchedDevices.join(', ') || '(none — all devices allowed)'}`)
 })
+
+// Optional second source - only starts if Spotify credentials are configured,
+// so existing Plex-only setups are completely unaffected.
+if (config.spotifyClientId && config.spotifyClientSecret) {
+  console.log('[server] Spotify polling enabled.')
+  startSpotifyPolling(handleNowPlayingEvent, config)
+} else {
+  console.log('[server] Spotify polling disabled (SPOTIFY_CLIENT_ID/SECRET not set).')
+}
