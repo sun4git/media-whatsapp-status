@@ -91,6 +91,12 @@ export function startSpotifyPolling(onEvent, cfg) {
     accessToken = token
     // Refresh a bit early (60s margin) rather than cutting it exactly at expiry.
     accessTokenExpiresAt = Date.now() + (expiresInSec - 60) * 1000
+    // A genuinely fresh access token might belong to a different linked
+    // account - e.g. spotify-token.json got overwritten by re-running
+    // npm run link:spotify for someone else while this process kept
+    // running. Re-resolve the display name alongside it rather than
+    // trusting a cache that could now be stale for a different person.
+    username = ''
     return accessToken
   }
 
