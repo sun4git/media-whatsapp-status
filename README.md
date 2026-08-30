@@ -28,14 +28,44 @@ your contacts with a new expiring story every few minutes. The `updateProfileSta
 call this code uses (in `src/whatsappClient.js`) targets the About field
 specifically, despite the "status" naming.
 
+WhatsApp redesigned About sometime around mid-2026: it's no longer just a
+plain text line. The editor now also has a **duration** ("1 day", etc.) and
+an **audience** ("Everyone", etc.) picker, alongside a "Suggestions" quick-set
+list — which is exactly why this project's `TRACK_DURATION_SEC` /
+`VIDEO_DURATION_SEC` / `IDLE_DURATION_SEC` settings (and the mandatory
+`emoji` argument) exist and matter now, where the old plain-text About didn't
+have a duration concept at all:
+
+<img src="docs/screenshots/about-edit-screen.png" alt="WhatsApp's About-editing screen, showing a text field, a 1-day duration picker, an Everyone audience picker, and suggested statuses like Away/Sleeping/At work" width="360">
+
+Once set, contacts see it as a **speech-bubble**, not plain text under your
+name — both on your profile page:
+
+<img src="docs/screenshots/contact-profile-bubble.png" alt="A contact's profile page showing a speech bubble reading a now-playing track, above the avatar and name" width="360">
+
+...and in the header of an open chat with you:
+
+<img src="docs/screenshots/chat-header-bubble.png" alt="An open chat's header showing the avatar, name, and the same now-playing speech bubble beneath it" width="360">
+
+So in practice: this service sets your About text/emoji/duration via
+`updateProfileStatus()`, and WhatsApp itself renders that as a bubble
+wherever a contact views your profile or chat header — no separate
+Status/Story post is ever created.
+
 ## How it works
 
 - Registers as a **second** Plex webhook URL alongside whatever `smart-plex-queue`
   already uses. Plex POSTs every event to both independently.
-- `src/sources/plex.js` filters events to `media.play` / `media.resume` on
-  `Metadata.type` of `track`, `movie`, or `episode`, from a username in your
-  watch list, and normalizes them to
-  `{ kind: 'playing', mediaType, title, subtitle }` / `{ kind: 'stopped' }`.
+- `src/sources/plex.js` filters events to `media.play` / `media.resume` /
+  `media.pause` / `media.stop` on `Metadata.type` of `track`, `movie`, or
+  `episode`, and normalizes them to
+  `{ kind: 'playing', mediaType, title, subtitle, username, deviceName }` /
+  `{ kind: 'stopped', username, deviceName }`.
+- `src/server.js` then applies `WATCHED_USERS` / `WATCHED_DEVICES` centrally
+  (so a future source doesn't need to re-implement the same filter) before
+  doing anything else with the event. `WATCHED_USERS` is required - an empty
+  list matches nobody. `WATCHED_DEVICES` is optional - an empty list means no
+  device restriction; when set, both the user AND the device must match.
 - `src/server.js` picks emoji/duration by `mediaType` (tracks get short
   music-length defaults, movies/episodes get long-form-video defaults),
   debounces bursts of events (e.g. skipping tracks), and only then connects to
@@ -100,6 +130,10 @@ duration), not just one. If it doesn't match, the call in
 Edit `.env`:
 - `WATCHED_USERS` - your Plex account username (as it appears in
   `Account.title` on the webhook payload).
+- `WATCHED_DEVICES` - optional. Leave empty to allow any device. To restrict,
+  list the Plex client/device name(s) exactly as Plex shows them (e.g. under
+  Settings -> Devices, or in `Player.title` on the webhook payload) -
+  comma-separated, spaces inside a name are fine.
 - `PORT` - pick a free port on this box (default `8090`; `mediasage` uses
   `5765`, `smart-plex-queue` uses `8000` elsewhere, so this shouldn't clash).
 - Leave the rest at their defaults for a first test.
@@ -192,7 +226,7 @@ sudo systemctl enable --now media-whatsapp-status
 
 | Symptom | Likely cause |
 |---|---|
-| Nothing logs when you play a track | `WATCHED_USERS` doesn't match `Account.title` exactly (check casing/spelling), or the webhook URL registered in Plex is wrong/missing |
+| Nothing logs when you play a track | `WATCHED_USERS` doesn't match `Account.title` exactly (check casing/spelling); if `WATCHED_DEVICES` is set, it also must match `Player.title` exactly (both filters must pass); or the webhook URL registered in Plex is wrong/missing |
 | `[whatsapp] Session was logged out...` | The phone unlinked the device, or WhatsApp invalidated the session. Delete the `auth/` folder and run `npm run link` again |
 | Status never updates but no errors | `Metadata.type` isn't `"track"` for what you played (e.g. you tested with a movie) |
 | Multiple rapid updates on track skip | `DEBOUNCE_MS` too low - increase it |
@@ -205,7 +239,12 @@ for personal accounts** - Spotify only exposes "currently playing" via
 polling `/me/player/currently-playing` under OAuth, not a push webhook, and
 Amazon Music has no public developer API for this at all as far as I'm aware.
 So a future Spotify source would be a small poller calling their API on an
-interval and feeding the same `{ kind: 'playing'/'stopped', title, artist }`
+interval and feeding the same
+`{ kind: 'playing'/'stopped', mediaType, title, subtitle, username, deviceName }`
 shape into `handleNowPlayingEvent` in `src/server.js` - not another webhook
-route. Worth confirming against Spotify's current developer docs before
-building it, since API terms/availability change.
+route. `username`/`deviceName` matter there too: `WATCHED_USERS`/`WATCHED_DEVICES`
+filtering happens centrally in `server.js`, so a Spotify source gets both
+filters for free as long as it fills in those two fields (from Spotify's
+`/me` display name and the `device.name` field on `/me/player`) - no need to
+re-implement the filter. Worth confirming against Spotify's current developer
+docs before building it, since API terms/availability change.

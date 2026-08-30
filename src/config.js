@@ -8,6 +8,11 @@ export const config = {
   port: parseInt(process.env.PORT || '8090', 10),
   plexWebhookPath: process.env.PLEX_WEBHOOK_PATH || '/webhook/plex',
   watchedUsers: parseList(process.env.WATCHED_USERS),
+  // Optional, unlike watchedUsers above: an empty list means "don't filter by
+  // device at all," not "match nobody." Matched case-insensitively against
+  // the webhook's Player.title (the device/client name Plex itself assigns,
+  // which can contain spaces, e.g. "Suneel's iPhone").
+  watchedDevices: parseList(process.env.WATCHED_DEVICES),
   debounceMs: parseInt(process.env.DEBOUNCE_MS || '2500', 10),
   idleDisconnectMs: parseInt(process.env.IDLE_DISCONNECT_MS || '10000', 10),
   clearStatusOnStop: (process.env.CLEAR_STATUS_ON_STOP || 'true').toLowerCase() === 'true',

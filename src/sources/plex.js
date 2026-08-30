@@ -9,9 +9,12 @@ function subtitleFor(mediaType, metadata) {
 // Parses a Plex webhook's multipart "payload" field into a normalized
 // now-playing event. Keeping Plex's own event/field names isolated here means
 // a future source (e.g. a Spotify polling module) only needs to produce the
-// same { kind: 'playing', mediaType, title, subtitle } / { kind: 'stopped' }
-// shape to plug into the same formatter/queue/whatsapp pipeline.
-export function parsePlexWebhook(rawPayloadJson, watchedUsers) {
+// same { kind, mediaType, title, subtitle, username, deviceName } shape to
+// plug into the same formatter/queue/whatsapp pipeline. This function only
+// parses and normalizes - it doesn't apply watchedUsers/watchedDevices
+// filtering itself; that's done centrally in server.js so every source
+// shares one filter implementation instead of each re-checking it.
+export function parsePlexWebhook(rawPayloadJson) {
   let payload
   try {
     payload = JSON.parse(rawPayloadJson)
@@ -19,9 +22,11 @@ export function parsePlexWebhook(rawPayloadJson, watchedUsers) {
     return null
   }
 
-  const { event, Account, Metadata } = payload
+  const { event, Account, Metadata, Player } = payload
   if (!Metadata || !SUPPORTED_MEDIA_TYPES.includes(Metadata.type)) return null
-  if (!Account?.title || !watchedUsers.includes(Account.title.toLowerCase())) return null
+
+  const username = Account?.title || ''
+  const deviceName = Player?.title || ''
 
   if (event === 'media.play' || event === 'media.resume') {
     return {
@@ -29,11 +34,13 @@ export function parsePlexWebhook(rawPayloadJson, watchedUsers) {
       mediaType: Metadata.type,
       title: Metadata.title || 'Unknown',
       subtitle: subtitleFor(Metadata.type, Metadata),
+      username,
+      deviceName,
     }
   }
 
   if (event === 'media.pause' || event === 'media.stop') {
-    return { kind: 'stopped' }
+    return { kind: 'stopped', username, deviceName }
   }
 
   return null

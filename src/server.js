@@ -9,6 +9,16 @@ const app = express()
 const upload = multer({ storage: multer.memoryStorage() })
 
 const watchedUsers = config.watchedUsers.map((u) => u.toLowerCase())
+const watchedDevices = config.watchedDevices.map((d) => d.toLowerCase())
+
+// watchedUsers is required (empty means "match nobody" - see config.js's
+// startup warning); watchedDevices is a genuinely optional, additive filter
+// (empty means "don't restrict by device"). Both must pass when configured.
+function isWatched(username, deviceName) {
+  const userOk = watchedUsers.includes((username || '').toLowerCase())
+  const deviceOk = watchedDevices.length === 0 || watchedDevices.includes((deviceName || '').toLowerCase())
+  return userOk && deviceOk
+}
 
 const updateOpts = {
   authDir: config.authDir,
@@ -26,6 +36,7 @@ const MEDIA_STYLE = {
 
 function handleNowPlayingEvent(result) {
   if (!result) return
+  if (!isWatched(result.username, result.deviceName)) return
   if (result.kind === 'playing') {
     const style = MEDIA_STYLE[result.mediaType] ?? MEDIA_STYLE.track
     scheduleStatusUpdate(
@@ -50,7 +61,7 @@ app.post(config.plexWebhookPath, upload.any(), (req, res) => {
   res.sendStatus(200)
 
   try {
-    handleNowPlayingEvent(parsePlexWebhook(req.body.payload, watchedUsers))
+    handleNowPlayingEvent(parsePlexWebhook(req.body.payload))
   } catch (err) {
     console.error('[server] Error handling Plex webhook:', err)
   }
@@ -60,4 +71,5 @@ app.listen(config.port, () => {
   console.log(`[server] Listening on port ${config.port}`)
   console.log(`[server]   Plex webhook path: ${config.plexWebhookPath}`)
   console.log(`[server] Watching user(s): ${config.watchedUsers.join(', ') || '(none configured)'}`)
+  console.log(`[server] Watching device(s): ${config.watchedDevices.join(', ') || '(none — all devices allowed)'}`)
 })
