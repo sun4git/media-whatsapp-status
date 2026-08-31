@@ -12,6 +12,37 @@ Both normalize into the same shape and share the same `WATCHED_USERS` /
 `WATCHED_DEVICES` filtering in `src/server.js`, so adding a source is mostly
 about producing that shape, not re-implementing filtering or WhatsApp logic.
 
+## Features
+
+- **Two independent sources** - Plex (a real push webhook) and Spotify
+  (adaptive polling) - both feeding the same pipeline, so adding a third
+  source later is a small, self-contained addition rather than a rewrite.
+  Most similar tools handle only one source, since a push webhook and an
+  OAuth polling loop are architecturally very different things to support
+  side by side.
+- **Per-user and per-device filtering**, shared across every source -
+  `WATCHED_USERS` picks whose playback counts; the optional
+  `WATCHED_DEVICES` additionally restricts to specific clients/players
+  (e.g. only your phone, not the living room TV).
+- **Connect-on-demand WhatsApp session** - opens, updates, and closes the
+  connection per event instead of staying logged in permanently, closer to
+  how briefly opening WhatsApp Web behaves than an always-on bot.
+- **Self-hosted, no third-party relay** - talks to WhatsApp and Spotify
+  directly; nothing about your playback or your WhatsApp session passes
+  through any other server.
+- **Debounced and quota-aware** - coalesces rapid track skips into a single
+  update, and the Spotify poller backs off adaptively (fast while playing,
+  slow while idle, and stops entirely for an unwatched account) since
+  Spotify doesn't publish its Development Mode quota numbers.
+
+One thing this project deliberately doesn't overlap with: WhatsApp itself
+has been beta-testing a native "share a Spotify track" feature (covered by
+tech press, e.g.
+[Social Media Today](https://www.socialmediatoday.com/news/whataspp-status-music-sharing-update-spotify/743031/)).
+That's a one-time share into the 24-hour Status/Stories feed, not a
+continuously-updated indicator in About - a different feature entirely, so
+it doesn't make this redundant even if WhatsApp ships it broadly.
+
 ## About text vs. WhatsApp Status - why this matters
 
 WhatsApp has two different features that share confusing names:
@@ -77,6 +108,10 @@ Status/Story post is ever created.
 - `src/sources/spotify.js` runs its own poll loop (no webhook exists for
   this) and calls the same `handleNowPlayingEvent` directly - see the
   Spotify section below for setup and how polling frequency is kept low.
+- If both sources are enabled and happen to report around the same time
+  (e.g. tracking the same person on both Plex and Spotify), there's no
+  merge or priority between them - whichever event lands most recently
+  simply becomes the new status, same as two rapid Plex events would.
 
 ## Prerequisites (Ubuntu listener box)
 
@@ -317,6 +352,27 @@ adapts its interval instead of polling at one fixed rate:
   forever for an account that could never pass the filter anyway - add it to
   `.env` and restart the service to enable polling for that account.
 
+## Limitations
+
+Worth knowing before you invest time setting this up:
+
+- **One WhatsApp account per running instance** - the session is process-wide,
+  not per-account. Multiple WhatsApp accounts need multiple running
+  instances (separate folder, port, and `.env` each) rather than one
+  process juggling several sessions.
+- **One Spotify account polled at a time** - tracking 2+ Spotify accounts
+  into the *same* WhatsApp status isn't built yet (`SPOTIFY_TOKEN_PATH` is
+  a single file); see the Spotify section above.
+- **Spotify's Development Mode caps out at 5 authorized accounts total**,
+  permanently, for personal/hobby use - Extended Quota Mode requires an
+  approved business with 250k+ monthly active users.
+- **Depends on an unmerged, unofficial Baileys fork** for About updates to
+  work at all (see "Known issue" above) - inherently more fragile than
+  depending on a released package, and worth re-checking periodically.
+- **Spotify updates lag behind Plex's** - up to `SPOTIFY_POLL_INTERVAL_MS`
+  (10s by default) after a change, since there's no push option for it,
+  versus Plex's near-instant webhook.
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
@@ -329,3 +385,7 @@ adapts its interval instead of polling at one fixed rate:
 | `Could not read Spotify refresh token from ...` | Run `npm run link:spotify` first - the poller has nothing to authenticate with until that's done once |
 | `[spotify] Access token rejected...` repeating every cycle | The refresh token was revoked (e.g. the account removed app access in their Spotify settings) - delete `spotify-token.json` and run `npm run link:spotify` again |
 | `[spotify] Linked account "..." is not in WATCHED_USERS - stopping...` | Expected if that account isn't meant to be tracked. To enable it, add that exact display name to `WATCHED_USERS` in `.env` and restart the service |
+
+## License
+
+MIT - see [LICENSE](LICENSE).
