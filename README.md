@@ -35,13 +35,13 @@ about producing that shape, not re-implementing filtering or WhatsApp logic.
   slow while idle, and stops entirely for an unwatched account) since
   Spotify doesn't publish its Development Mode quota numbers.
 
-One thing this project deliberately doesn't overlap with: WhatsApp itself
-has been beta-testing a native "share a Spotify track" feature (covered by
-tech press, e.g.
-[Social Media Today](https://www.socialmediatoday.com/news/whataspp-status-music-sharing-update-spotify/743031/)).
-That's a one-time share into the 24-hour Status/Stories feed, not a
-continuously-updated indicator in About - a different feature entirely, so
-it doesn't make this redundant even if WhatsApp ships it broadly.
+One thing this project doesn't overlap with: Spotify and WhatsApp have
+already shipped a native "share what you're playing" feature (per
+[Spotify's own announcement](https://newsroom.spotify.com/2025-11-07/share-spotify-music-whatsapp-instagram-tiktok/),
+rolled out globally from November 2025). That's a **manual, one-time share**
+of a specific song/playlist/podcast as a visual card into the 24-hour
+Status feed - not an automatic, continuously-updated indicator in About -
+so it's a genuinely different feature, not a preview of this one.
 
 ## About text vs. WhatsApp Status - why this matters
 
