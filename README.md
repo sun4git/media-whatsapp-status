@@ -3,8 +3,8 @@
 Listens for playback webhooks and updates a WhatsApp account's **About text**
 (the short persistent profile bio, *not* the 24-hour Status/Stories feature)
 with the track currently playing, for one or more configured usernames.
-Fully independent of `mediasage` and `smart-plex-queue` — its own dependencies,
-its own WhatsApp session, no shared code or process.
+Self-contained: its own dependencies and its own WhatsApp session - nothing
+else needs to be running alongside it.
 
 Two sources are supported: **Plex** (a real push webhook) and **Spotify**
 (polling, since Spotify has no webhook - see the dedicated section below).
@@ -55,8 +55,10 @@ Status/Story post is ever created.
 
 ## How it works
 
-- Registers as a **second** Plex webhook URL alongside whatever `smart-plex-queue`
-  already uses. Plex POSTs every event to both independently.
+- Registers as a Plex webhook URL. Plex supports multiple registered
+  webhooks and POSTs every event to each independently, so this can run
+  alongside any other Plex webhook consumer you already have (Tautulli, a
+  custom script, etc.) without interfering with it.
 - `src/sources/plex.js` filters events to `media.play` / `media.resume` /
   `media.pause` / `media.stop` on `Metadata.type` of `track`, `movie`, or
   `episode`, and normalizes them to
@@ -139,8 +141,7 @@ Edit `.env`:
   list the Plex client/device name(s) exactly as Plex shows them (e.g. under
   Settings -> Devices, or in `Player.title` on the webhook payload) -
   comma-separated, spaces inside a name are fine.
-- `PORT` - pick a free port on this box (default `8090`; `mediasage` uses
-  `5765`, `smart-plex-queue` uses `8000` elsewhere, so this shouldn't clash).
+- `PORT` - pick any free port on this box (default `8090`).
 - Leave the rest at their defaults for a first test.
 
 ## Link WhatsApp (one-time)
@@ -181,9 +182,9 @@ Plex Settings -> Webhooks -> Add Webhook (requires Plex Pass):
 ```
 http://<this-box-ip>:8090/webhook/plex
 ```
-This is **in addition to** the existing webhook URL `smart-plex-queue` uses -
-don't replace that one, just add this as a second entry. Plex will POST the
-same event to both.
+If you already have another webhook registered in Plex for something else,
+leave it in place and add this as an additional entry rather than replacing
+it - Plex POSTs the same event to every registered webhook.
 
 ## Test
 
