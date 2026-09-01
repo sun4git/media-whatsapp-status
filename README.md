@@ -113,17 +113,11 @@ Status/Story post is ever created.
   merge or priority between them - whichever event lands most recently
   simply becomes the new status, same as two rapid Plex events would.
 
-## Prerequisites (Ubuntu listener box)
+## Prerequisites
 
-- Node.js and npm (already present on this box).
-- `build-essential` and `python3` if not already installed, in case a native
-  module needs compiling during `npm install`:
-  ```bash
-  sudo apt-get update && sudo apt-get install -y build-essential python3
-  ```
-- Outbound internet access from this box (not just LAN) - it connects
-  directly to WhatsApp's servers, and to Spotify's API if that source is
-  enabled.
+- [Node.js](https://nodejs.org/) 18+ and npm.
+- Outbound internet access (not just LAN) - it connects directly to
+  WhatsApp's servers, and to Spotify's API if that source is enabled.
 - A phone with the target WhatsApp account installed, for the one-time QR
   link.
 
@@ -153,9 +147,9 @@ than being left blank.
 ## Install
 
 ```bash
-cd ~/media-whatsapp-status   # wherever you copy this project on the Ubuntu box
-npm install express multer dotenv pino qrcode-terminal
-npm install baileys@github:ayusc/Baileys#9a469c7
+git clone https://github.com/sun4git/media-whatsapp-status.git
+cd media-whatsapp-status
+npm install
 cp .env.example .env
 ```
 
@@ -176,7 +170,7 @@ Edit `.env`:
   list the Plex client/device name(s) exactly as Plex shows them (e.g. under
   Settings -> Devices, or in `Player.title` on the webhook payload) -
   comma-separated, spaces inside a name are fine.
-- `PORT` - pick any free port on this box (default `8090`).
+- `PORT` - pick any free port on this machine (default `8090`).
 - Leave the rest at their defaults for a first test.
 
 ## Link WhatsApp (one-time)
@@ -215,7 +209,7 @@ You should see:
 
 Plex Settings -> Webhooks -> Add Webhook (requires Plex Pass):
 ```
-http://<this-box-ip>:8090/webhook/plex
+http://<this-machine-ip>:8090/webhook/plex
 ```
 If you already have another webhook registered in Plex for something else,
 leave it in place and add this as an additional entry rather than replacing
