@@ -7,6 +7,9 @@ function parseList(value) {
 export const config = {
   port: parseInt(process.env.PORT || '8090', 10),
   plexWebhookPath: process.env.PLEX_WEBHOOK_PATH || '/webhook/plex',
+  // Intake for the WhatsPlaying Android companion app (NotificationListenerService
+  // + MediaController push events) - a JSON POST, unlike Plex's multipart payload.
+  whatsPlayingWebhookPath: process.env.WHATSPLAYING_WEBHOOK_PATH || '/webhook/whatsplaying',
   watchedUsers: parseList(process.env.WATCHED_USERS),
   // Optional, unlike watchedUsers above: an empty list means "don't filter by
   // device at all," not "match nobody." Matched case-insensitively against

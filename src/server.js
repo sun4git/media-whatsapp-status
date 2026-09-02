@@ -5,6 +5,7 @@ import { formatNowPlaying } from './statusFormatter.js'
 import { scheduleStatusUpdate } from './queue.js'
 import { parsePlexWebhook } from './sources/plex.js'
 import { startSpotifyPolling } from './sources/spotify.js'
+import { parseWhatsPlayingPayload } from './sources/whatsplaying.js'
 
 const app = express()
 const upload = multer({ storage: multer.memoryStorage() })
@@ -68,9 +69,20 @@ app.post(config.plexWebhookPath, upload.any(), (req, res) => {
   }
 })
 
+app.post(config.whatsPlayingWebhookPath, express.json(), (req, res) => {
+  res.sendStatus(200)
+
+  try {
+    handleNowPlayingEvent(parseWhatsPlayingPayload(req.body))
+  } catch (err) {
+    console.error('[server] Error handling WhatsPlaying webhook:', err)
+  }
+})
+
 app.listen(config.port, () => {
   console.log(`[server] Listening on port ${config.port}`)
   console.log(`[server]   Plex webhook path: ${config.plexWebhookPath}`)
+  console.log(`[server]   WhatsPlaying webhook path: ${config.whatsPlayingWebhookPath}`)
   console.log(`[server] Watching user(s): ${config.watchedUsers.join(', ') || '(none configured)'}`)
   console.log(`[server] Watching device(s): ${config.watchedDevices.join(', ') || '(none — all devices allowed)'}`)
 })

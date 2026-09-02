@@ -199,6 +199,7 @@ You should see:
 ```
 [server] Listening on port 8090
 [server]   Plex webhook path: /webhook/plex
+[server]   WhatsPlaying webhook path: /webhook/whatsplaying
 [server] Watching user(s): YourPlexUsername
 [server] Watching device(s): (none — all devices allowed)
 [server] Spotify polling disabled (SPOTIFY_CLIENT_ID/SECRET not set).
@@ -214,6 +215,21 @@ http://<this-machine-ip>:8090/webhook/plex
 If you already have another webhook registered in Plex for something else,
 leave it in place and add this as an additional entry rather than replacing
 it - Plex POSTs the same event to every registered webhook.
+
+## Point WhatsPlaying at it (optional third source)
+
+`WhatsPlaying` is a separate Android app (sibling project, `../WhatsPlaying/`)
+that reads now-playing state via `NotificationListenerService` +
+`MediaController.Callback` from whatever's actually playing on the phone
+(Spotify, Amazon Music, etc.) and POSTs it here directly - no per-service API
+needed. In the app's settings screen, set:
+```
+Server URL: http://<this-machine-ip>:8090
+Username:   must match an entry in WATCHED_USERS above
+```
+The app appends `/webhook/whatsplaying` itself; `username`/`deviceName` come
+straight from the app's settings fields (there's no account concept on that
+side to derive them from, unlike Plex/Spotify).
 
 ## Test
 
