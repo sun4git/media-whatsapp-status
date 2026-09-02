@@ -2,8 +2,10 @@ const SUPPORTED_MEDIA_TYPES = ['track', 'movie', 'episode']
 
 function subtitleFor(mediaType, metadata) {
   if (mediaType === 'movie') return metadata.year ? String(metadata.year) : ''
-  // track -> artist, episode -> show name: both live in grandparentTitle
-  return metadata.grandparentTitle || metadata.originalTitle || ''
+  // track artist (originalTitle) takes priority over album artist (grandparentTitle)
+  if (mediaType === 'track') return metadata.originalTitle || metadata.grandparentTitle || ''
+  // episode -> show name lives in grandparentTitle
+  return metadata.grandparentTitle || ''
 }
 
 // Parses a Plex webhook's multipart "payload" field into a normalized
