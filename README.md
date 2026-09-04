@@ -230,7 +230,9 @@ The app appends `/webhook/whatsplaying` itself. Unlike Plex/Spotify, this
 source has no `username` and isn't filtered by `WATCHED_USERS` at all - it's
 inherently one phone posting to one server instance updating one WhatsApp
 account, so there's no "whose playback is this" question to answer. Optional
-`deviceName` (from the app's own settings field) still goes through
+`deviceName` (auto-detected by the app from the phone's own system device
+name - Settings.Global.DEVICE_NAME, the same one shown pairing Bluetooth
+devices - not something you type into the app) still goes through
 `WATCHED_DEVICES` if you ever want to restrict which phone's events count.
 
 ## Test
