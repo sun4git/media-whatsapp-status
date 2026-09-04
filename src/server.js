@@ -14,10 +14,16 @@ const watchedUsers = config.watchedUsers.map((u) => u.toLowerCase())
 const watchedDevices = config.watchedDevices.map((d) => d.toLowerCase())
 
 // watchedUsers is required (empty means "match nobody" - see config.js's
-// startup warning); watchedDevices is a genuinely optional, additive filter
-// (empty means "don't restrict by device"). Both must pass when configured.
-function isWatched(username, deviceName) {
-  const userOk = watchedUsers.includes((username || '').toLowerCase())
+// startup warning) for genuinely multi-account sources (Plex, Spotify) where
+// WATCHED_USERS picks whose playback counts. The WhatsPlaying app source has
+// no such ambiguity - it's inherently one phone -> this one server instance
+// -> the one WhatsApp account this process is logged into, so callers for
+// that source pass requireUser: false to skip it entirely. watchedDevices is
+// a genuinely optional, additive filter for every source (empty means
+// "don't restrict by device") - still meaningful even for WhatsPlaying if
+// more than one phone ever points at the same server.
+function isWatched(username, deviceName, { requireUser = true } = {}) {
+  const userOk = !requireUser || watchedUsers.includes((username || '').toLowerCase())
   const deviceOk = watchedDevices.length === 0 || watchedDevices.includes((deviceName || '').toLowerCase())
   return userOk && deviceOk
 }
@@ -36,9 +42,9 @@ const MEDIA_STYLE = {
   episode: { emoji: config.videoEmoji, durationSec: config.videoDurationSec },
 }
 
-function handleNowPlayingEvent(result) {
+function handleNowPlayingEvent(result, isWatchedOpts = {}) {
   if (!result) return
-  if (!isWatched(result.username, result.deviceName)) return
+  if (!isWatched(result.username, result.deviceName, isWatchedOpts)) return
   if (result.kind === 'playing') {
     const style = MEDIA_STYLE[result.mediaType] ?? MEDIA_STYLE.track
     scheduleStatusUpdate(
@@ -73,7 +79,8 @@ app.post(config.whatsPlayingWebhookPath, express.json(), (req, res) => {
   res.sendStatus(200)
 
   try {
-    handleNowPlayingEvent(parseWhatsPlayingPayload(req.body))
+    // No WATCHED_USERS check for this source - see isWatched's comment.
+    handleNowPlayingEvent(parseWhatsPlayingPayload(req.body), { requireUser: false })
   } catch (err) {
     console.error('[server] Error handling WhatsPlaying webhook:', err)
   }

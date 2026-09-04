@@ -225,11 +225,13 @@ that reads now-playing state via `NotificationListenerService` +
 needed. In the app's settings screen, set:
 ```
 Server URL: http://<this-machine-ip>:8090
-Username:   must match an entry in WATCHED_USERS above
 ```
-The app appends `/webhook/whatsplaying` itself; `username`/`deviceName` come
-straight from the app's settings fields (there's no account concept on that
-side to derive them from, unlike Plex/Spotify).
+The app appends `/webhook/whatsplaying` itself. Unlike Plex/Spotify, this
+source has no `username` and isn't filtered by `WATCHED_USERS` at all - it's
+inherently one phone posting to one server instance updating one WhatsApp
+account, so there's no "whose playback is this" question to answer. Optional
+`deviceName` (from the app's own settings field) still goes through
+`WATCHED_DEVICES` if you ever want to restrict which phone's events count.
 
 ## Test
 
