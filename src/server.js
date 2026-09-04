@@ -34,12 +34,16 @@ const updateOpts = {
   debounceMs: config.debounceMs,
 }
 
-// movie and episode share the same "long-form video" defaults; track (music)
-// gets its own, much shorter, defaults.
+// movie, episode, and video all share the same "long-form video" defaults;
+// track (music) gets its own, much shorter, defaults. movie/episode come
+// from Plex's own metadata; video is what the WhatsPlaying Android app sends
+// for a package it recognizes as a video app (it has no Plex-style
+// movie/episode distinction available to it, just a single audio/video call).
 const MEDIA_STYLE = {
   track: { emoji: config.trackEmoji, durationSec: config.trackDurationSec },
   movie: { emoji: config.videoEmoji, durationSec: config.videoDurationSec },
   episode: { emoji: config.videoEmoji, durationSec: config.videoDurationSec },
+  video: { emoji: config.videoEmoji, durationSec: config.videoDurationSec },
 }
 
 function handleNowPlayingEvent(result, isWatchedOpts = {}) {
